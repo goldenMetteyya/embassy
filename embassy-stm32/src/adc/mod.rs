@@ -14,9 +14,8 @@ mod sample_time;
 
 #[allow(unused)]
 pub use _version::*;
-#[cfg(not(any(adc_f1, adc_v1)))]
+#[cfg(not(any(adc_f1)))]
 pub use resolution::Resolution;
-#[cfg(not(adc_v1))]
 pub use sample_time::SampleTime;
 
 use crate::peripherals;
