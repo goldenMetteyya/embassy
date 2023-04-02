@@ -200,7 +200,7 @@ foreach_dma_channel! {
                 unsafe {low_level_api::is_running(pac::$dma_peri, $channel_num)}
             }
 
-            fn remaining_transfers(&mut self) -> u16 {
+            fn remaining_transfers(&self) -> u16 {
                 unsafe {low_level_api::get_remaining_transfers(pac::$dma_peri, $channel_num)}
             }
 
@@ -212,6 +212,14 @@ foreach_dma_channel! {
                 unsafe {
                     low_level_api::on_irq_inner(pac::$dma_peri, $channel_num, $index);
                 }
+            }
+
+            fn get_tcif(&self) -> bool {
+                unsafe {low_level_api::get_tcif(pac::$dma_peri, $channel_num)}
+            }
+
+            fn clear_tcif(&mut self) {
+                unsafe {low_level_api::clear_tcif(pac::$dma_peri, $channel_num);}
             }
         }
         impl crate::dma::Channel for crate::peripherals::$channel_peri { }
@@ -243,9 +251,13 @@ mod low_level_api {
 
         reset_status(dma, channel_number);
 
+        // Get peripheral channel number
         let ch = dma.st(channel_number as _);
+        // Set the peripheral register address
         ch.par().write_value(peri_addr as u32);
+        // Set the memory address
         ch.m0ar().write_value(mem_addr as u32);
+        // Configure the total number of data to transfer
         ch.ndtr().write_value(regs::Ndtr(mem_len as _));
         ch.fcr().write(|w| {
             if let Some(fth) = options.fifo_threshold {
@@ -257,6 +269,8 @@ mod low_level_api {
                 w.set_dmdis(vals::Dmdis::ENABLED);
             }
         });
+
+        // Configure the parameters
         ch.cr().write(|w| {
             w.set_dir(dir);
             w.set_msize(data_size);
@@ -269,7 +283,13 @@ mod low_level_api {
             }
             w.set_pinc(vals::Inc::FIXED);
             w.set_teie(true);
-            w.set_tcie(true);
+            w.set_circ(if options.circ {
+                vals::Circ::ENABLED
+            } else {
+                vals::Circ::DISABLED
+            });
+            w.set_tcie(options.tcie);
+
             #[cfg(dma_v1)]
             w.set_trbuff(true);
 
@@ -332,7 +352,7 @@ mod low_level_api {
             }
             w.set_pinc(vals::Inc::FIXED);
             w.set_teie(true);
-            w.set_tcie(true);
+            w.set_tcie(options.tcie);
 
             #[cfg(dma_v1)]
             w.set_trbuff(true);
@@ -436,5 +456,16 @@ mod low_level_api {
             dma.ifcr(channel_num / 4).write(|w| w.set_tcif(channel_num % 4, true));
             STATE.channels[state_index].waker.wake();
         }
+    }
+
+    pub unsafe fn get_tcif(dma: pac::dma::Dma, channel_num: u8) -> bool {
+        let channel_num = channel_num as usize;
+        let isr = dma.isr(channel_num / 4).read();
+        isr.tcif(channel_num % 4)
+    }
+
+    pub unsafe fn clear_tcif(dma: pac::dma::Dma, channel_num: u8) {
+        let channel_num = channel_num as usize;
+        dma.ifcr(channel_num / 4).write(|w| w.set_tcif(channel_num % 4, true));
     }
 }

@@ -42,6 +42,23 @@ impl_sample_time!(
     )
 );
 
+#[cfg(adc_v1)]
+impl_sample_time!(
+    "1.5",
+    Cycles1_5,
+    crate::pac::adc::vals::Smp,
+    (
+        ("1.5", Cycles1_5, CYCLES1_5),
+        ("7.5", Cycles7_5, CYCLES7_5),
+        ("13.5", Cycles13_5, CYCLES13_5),
+        ("28.5", Cycles28_5, CYCLES28_5),
+        ("41.5", Cycles41_5, CYCLES41_5),
+        ("55.5", Cycles55_5, CYCLES55_5),
+        ("71.5", Cycles71_5, CYCLES71_5),
+        ("239.5", Cycles239_5, CYCLES239_5)
+    )
+);
+
 #[cfg(adc_v2)]
 impl_sample_time!(
     "3",

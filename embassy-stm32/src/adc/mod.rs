@@ -7,16 +7,18 @@
 #[cfg_attr(adc_v4, path = "v4.rs")]
 mod _version;
 
-#[cfg(not(any(adc_f1, adc_v1)))]
+// #[cfg(not(any(adc_f1, adc_v1)))]
+#[cfg(not(any(adc_f1)))]
 mod resolution;
-#[cfg(not(adc_v1))]
+// #[cfg(not(adc_v1))]
 mod sample_time;
 
 #[allow(unused)]
 pub use _version::*;
-#[cfg(not(any(adc_f1, adc_v1)))]
+// #[cfg(not(any(adc_f1, adc_v1)))]
+#[cfg(not(any(adc_f1)))]
 pub use resolution::Resolution;
-#[cfg(not(adc_v1))]
+// #[cfg(not(adc_v1))]
 pub use sample_time::SampleTime;
 
 use crate::peripherals;
@@ -28,11 +30,43 @@ pub struct Adc<'d, T: Instance> {
     sample_time: SampleTime,
 }
 
+#[cfg(adc_v1)]
+pub struct Adc<'d, T: Instance> {
+    #[allow(unused)]
+    adc: crate::PeripheralRef<'d, T>,
+    sample_time: SampleTime,
+    resolution: Resolution,
+    align: Align,
+    //
+    vref_mv: u32,
+    //phantom: PhantomData<&'d mut T>,
+}
+
 pub(crate) mod sealed {
+    use embassy_sync::waitqueue::AtomicWaker;
+
+    use super::*;
+
+    pub struct State {
+        pub rx_waker: AtomicWaker,
+    }
+
+    impl State {
+        pub const fn new() -> Self {
+            Self {
+                rx_waker: AtomicWaker::new(),
+            }
+        }
+    }
+
     pub trait Instance {
+        type Interrupt: crate::interrupt::Interrupt;
+
         fn regs() -> crate::pac::adc::Adc;
         #[cfg(all(not(adc_f1), not(adc_v1)))]
         fn common_regs() -> crate::pac::adccommon::AdcCommon;
+
+        fn state() -> &'static State;
     }
 
     pub trait AdcPin<T: Instance> {
@@ -122,3 +156,35 @@ macro_rules! impl_adc_pin {
         }
     };
 }
+
+/// ADC Result Alignment
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum Align {
+    /// Right aligned results (least significant bits)
+    ///
+    /// Results in all precisions returning values from 0-(2^bits-1) in
+    /// steps of 1.
+    Right,
+    /// Left aligned results (most significant bits)
+    ///
+    /// Results in all precisions returning a value in the range 0-65535.
+    /// Depending on the precision the result will step by larger or smaller
+    /// amounts.
+    Left,
+}
+impl From<Align> for bool {
+    fn from(a: Align) -> bool {
+        match a {
+            Align::Right => false,
+            Align::Left => true,
+        }
+    }
+}
+
+impl Default for Align {
+    fn default() -> Self {
+        Align::Right
+    }
+}
+
+dma_trait!(RxDma, Instance);

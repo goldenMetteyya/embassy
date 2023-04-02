@@ -10,7 +10,7 @@ pub mod low_level {
     pub use super::sealed::*;
 }
 
-pub(crate) mod sealed {
+pub mod sealed {
     use super::*;
     pub trait Basic16bitInstance: RccPeripheral {
         type Interrupt: Interrupt;

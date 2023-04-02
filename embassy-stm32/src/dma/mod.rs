@@ -27,6 +27,8 @@ pub mod low_level {
 
 pub(crate) use transfers::*;
 
+pub(crate) mod ringbuffer;
+
 #[cfg(any(bdma_v2, dma_v2, dmamux, gpdma))]
 pub type Request = u8;
 #[cfg(not(any(bdma_v2, dma_v2, dmamux, gpdma)))]
@@ -109,7 +111,7 @@ pub(crate) mod sealed {
         fn is_running(&self) -> bool;
 
         /// Returns the total number of remaining transfers.
-        fn remaining_transfers(&mut self) -> u16;
+        fn remaining_transfers(&self) -> u16;
 
         /// Sets the waker that is called when this channel stops (either completed or manually stopped)
         fn set_waker(&mut self, waker: &Waker);
@@ -118,6 +120,12 @@ pub(crate) mod sealed {
         /// Note: Because some channels share an interrupt, this function might be
         /// called for a channel that didn't trigger an interrupt.
         fn on_irq();
+
+        /// Returns whether the "transfer completed" interrupt flag is currently set.
+        fn get_tcif(&self) -> bool;
+
+        /// Clear the "transfer completed" interrupt flag.
+        fn clear_tcif(&mut self);
     }
 }
 
@@ -210,6 +218,10 @@ pub struct TransferOptions {
     pub flow_ctrl: FlowControl,
     /// FIFO threshold for DMA FIFO mode. If none, direct mode is used.
     pub fifo_threshold: Option<FifoThreshold>,
+    /// Circular mode
+    pub circ: bool,
+    /// Transfer completed interrupt enabled
+    pub tcie: bool,
 }
 
 impl Default for TransferOptions {
@@ -219,6 +231,8 @@ impl Default for TransferOptions {
             mburst: Burst::Single,
             flow_ctrl: FlowControl::Dma,
             fifo_threshold: None,
+            circ: false,
+            tcie: true,
         }
     }
 }
