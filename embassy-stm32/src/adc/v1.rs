@@ -184,6 +184,8 @@ where
             }
         }
     }
+
+    fn setup(&self) {}
 }
 
 impl<'d, T: Instance> Drop for Adc<'d, T> {
