@@ -19,7 +19,6 @@ pub use sample_time::SampleTime;
 
 use crate::peripherals;
 
-
 /// ADC Result Alignment
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Align {
@@ -61,9 +60,9 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-          sample_time: SampleTime::Cycles239_5,
-          resolution: Resolution::default(), // 12bit
-          align: Align::default() // Right
+            sample_time: SampleTime::Cycles239_5,
+            resolution: Resolution::default(), // 12bit
+            align: Align::default(),           // Right
         }
     }
 }
@@ -81,6 +80,7 @@ pub struct Adc<'d, T: Instance> {
     adc: crate::PeripheralRef<'d, T>,
     config: Config,
     vref_mv: u32,
+}
 
 pub(crate) mod sealed {
     pub trait Instance {
@@ -175,6 +175,4 @@ macro_rules! impl_adc_pin {
             }
         }
     };
-    
-    
 }

@@ -13,7 +13,8 @@
 // https://github.com/stm32-rs/stm32f0xx-hal/blob/master/src/adc.rs
 
 use embassy_hal_common::into_ref;
-use crate::adc::{Adc, Instance, Config};
+
+use crate::adc::{Adc, Config, Instance};
 
 const VREFCAL: *const u16 = 0x1FFF_F7BA as *const u16;
 const VTEMPCAL30: *const u16 = 0x1FFF_F7B8 as *const u16;
@@ -50,12 +51,13 @@ impl<T: Instance> super::sealed::AdcPin<T> for Vbat {
         // VBAT channel is connected to ADC VIN[18] channel.
         18
     }
-  
-  impl<'d, T> Adc<'d, T>
+}
+
+impl<'d, T> Adc<'d, T>
 where
     T: Instance,
 {
-   pub fn new(adc: impl Peripheral<P = T> + 'd, delay: &mut impl DelayUs<u32>, config: Config) -> Self {
+    pub fn new(adc: impl Peripheral<P = T> + 'd, delay: &mut impl DelayUs<u32>, config: Config) -> Self {
         into_ref!(adc);
 
         // A.7.4 ADC clock selection
@@ -80,7 +82,7 @@ where
         let mut s = Self {
             adc: adc,
             vref_mv: VDD_CALIB.into(),
-            config: config
+            config: config,
         };
 
         Self::calibrate();
@@ -96,8 +98,8 @@ where
         //info!("ADC enabled: {:?}", s.is_enabled());
         s
     }
-    
-      /// Procedure to enable the ADC
+
+    /// Procedure to enable the ADC
     fn enable(&mut self) {
         // A.7.2 ADC enable sequence code example
         //critical_section::with(|_| unsafe {
@@ -145,13 +147,13 @@ where
             //T::regs().isr().modify(|_, w| w.set_adrdy(true));
         });
     }
-    
-     /// Check if the ADC is enabled.
+
+    /// Check if the ADC is enabled.
     pub fn is_enabled(&self) -> bool {
         unsafe { T::regs().cr().read().aden() }
     }
-    
-     /// ADC Calibration procedure
+
+    /// ADC Calibration procedure
     /// During the calibration phase, the ADC calculates
     /// a calibration factor which is internally applied
     /// to the ADC until the next ADC power-off.
@@ -182,13 +184,10 @@ where
             }
         }
     }
-  
-  }
-    
-  impl<'d, T: Instance> Drop for Adc<'d, T> {
+}
+
+impl<'d, T: Instance> Drop for Adc<'d, T> {
     fn drop(&mut self) {
         self.disable();
     }
-}
-  
 }
