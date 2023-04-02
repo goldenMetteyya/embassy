@@ -79,8 +79,8 @@ pub struct Adc<'d, T: Instance> {
 pub struct Adc<'d, T: Instance> {
     #[allow(unused)]
     adc: crate::PeripheralRef<'d, T>,
-    config: Config
-}
+    config: Config,
+    vref_mv: u32,
 
 pub(crate) mod sealed {
     pub trait Instance {
