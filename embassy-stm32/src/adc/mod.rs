@@ -7,9 +7,8 @@
 #[cfg_attr(adc_v4, path = "v4.rs")]
 mod _version;
 
-#[cfg(not(any(adc_f1, adc_v1)))]
+#[cfg(not(any(adc_f1)))]
 mod resolution;
-#[cfg(not(adc_v1))]
 mod sample_time;
 
 #[allow(unused)]
@@ -20,11 +19,67 @@ pub use sample_time::SampleTime;
 
 use crate::peripherals;
 
+
+/// ADC Result Alignment
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum Align {
+    /// Right aligned results (least significant bits)
+    ///
+    /// Results in all precisions returning values from 0-(2^bits-1) in
+    /// steps of 1.
+    Right,
+    /// Left aligned results (most significant bits)
+    ///
+    /// Results in all precisions returning a value in the range 0-65535.
+    /// Depending on the precision the result will step by larger or smaller
+    /// amounts.
+    Left,
+}
+impl From<Align> for bool {
+    fn from(a: Align) -> bool {
+        match a {
+            Align::Right => false,
+            Align::Left => true,
+        }
+    }
+}
+
+impl Default for Align {
+    fn default() -> Self {
+        Align::Right
+    }
+}
+
+#[non_exhaustive]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Config {
+    sample_time: SampleTime,
+    resolution: Resolution,
+    align: Align,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+          sample_time: SampleTime::Cycles239_5,
+          resolution: Resolution::default(), // 12bit
+          align: Align::default() // Right
+        }
+    }
+}
+
 #[cfg(not(adc_v1))]
 pub struct Adc<'d, T: Instance> {
     #[allow(unused)]
     adc: crate::PeripheralRef<'d, T>,
     sample_time: SampleTime,
+}
+
+#[cfg(adc_v1)]
+pub struct Adc<'d, T: Instance> {
+    #[allow(unused)]
+    adc: crate::PeripheralRef<'d, T>,
+    config: Config
 }
 
 pub(crate) mod sealed {
@@ -120,4 +175,6 @@ macro_rules! impl_adc_pin {
             }
         }
     };
+    
+    
 }
